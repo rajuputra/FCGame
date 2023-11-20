@@ -11,10 +11,12 @@ public class Enemy : MonoBehaviour
 
     [SerializeField] protected float speed;
     [SerializeField] protected float damage;
+    [SerializeField] protected GameObject PurpleBlood;
 
     protected float recoilTimer;
     protected Rigidbody2D rb;
     protected SpriteRenderer sr;
+    protected Animator anim;
 
     protected enum EnemyStates
     {
@@ -30,22 +32,31 @@ public class Enemy : MonoBehaviour
     }
 
     protected EnemyStates currenEnemyState;
-    // Start is called before the first frame update
+    
+    protected virtual EnemyStates GetCurrentEnemyState
+    {
+        get { return currenEnemyState; }
+        set
+        {
+            if(currenEnemyState != value)
+            {
+                currenEnemyState = value;
+                ChangeCurrentAnimation();
+            }
+        }
+    }
+
     
     protected virtual void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         sr = GetComponent<SpriteRenderer>();
+        anim = GetComponent<Animator>();
     }
     // Update is called once per frame
     protected virtual void Update()
     {
-        
 
-        if (health <= 0)
-        {
-            Destroy(gameObject);
-        }
         if (isRecoiling)
         {
             if (recoilTimer < recoilLength)
@@ -64,31 +75,40 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    public virtual void EnemyHit(float _damageDone, Vector2 _hitDirection, float _hitForce)
+    public virtual void EnemyGetsHit(float _damageDone, Vector2 _hitDirection, float _hitForce)
     {
         health -= _damageDone;
         if (!isRecoiling)
         {
-            rb.velocity = -_hitForce * recoilFactor * _hitDirection;
+            GameObject _purpleBlood = Instantiate(PurpleBlood, transform.position, Quaternion.identity);
+            Destroy(_purpleBlood, 5.5f);
+            rb.velocity = _hitForce * recoilFactor * _hitDirection;
         }
     }
 
     protected void OnCollisionStay2D(Collision2D _other)
     {
-        if (_other.gameObject.CompareTag("Player") && !Player.Instance.aState.invincible)
+        if (_other.gameObject.CompareTag("Player") && !Player.Instance.aState.invincible && !Player.Instance.aState.invincible && health > 0)
         {
             Attack();
             Player.Instance.HitStopTime(0, 5, 0.5f);
         }
     }
 
+    protected virtual void Death(float _destroyTime)
+    {
+        Destroy(gameObject, _destroyTime);
+    }
+
     protected virtual void UpdateEnemyState()
     {
 
     }
+
+    protected virtual void ChangeCurrentAnimation() { }
     protected void ChangeState(EnemyStates _newState)
     {
-        currenEnemyState = _newState;
+        GetCurrentEnemyState = _newState;
     }
     protected virtual void Attack()
     {
